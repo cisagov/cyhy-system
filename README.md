@@ -2,15 +2,8 @@
 
 [![GitHub Build Status](https://github.com/cisagov/cyhy-system/workflows/build/badge.svg)](https://github.com/cisagov/cyhy-system/actions)
 
-This is a generic skeleton project that can be used to quickly get a
-new [cisagov](https://github.com/cisagov) GitHub project started.
-This skeleton project contains [licensing information](LICENSE), as
-well as [pre-commit hooks](https://pre-commit.com) and
-[GitHub Actions](https://github.com/features/actions) configurations
-appropriate for the major languages that we use.
-
-In many cases you will instead want to use one of the more specific
-skeleton projects derived from this one.
+This is a project for Cyber Hygiene (cyhy) that can be used for
+consolidated issue and work tracking.
 
 ## Contributing ##
 
