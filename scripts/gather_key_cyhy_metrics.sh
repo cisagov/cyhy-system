@@ -76,9 +76,13 @@ for stage in "${scan_stages[@]}"; do
 done
 
 # WEEKLY REPORTING METRICS
-weekly_snapshots_duration_minutes=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 /var/cyhy/reports/output/snapshots_reports_scorecard_automation.log | grep 'Time to generate snapshots' | cut --delimiter ' ' --fields 9")
-weekly_reports_duration_minutes=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 /var/cyhy/reports/output/snapshots_reports_scorecard_automation.log | grep 'Time to generate reports' | cut --delimiter ' ' --fields 9")
-weekly_total_reporting_duration_minutes=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 /var/cyhy/reports/output/snapshots_reports_scorecard_automation.log | grep 'Total time' | cut --delimiter ' ' --fields 7")
+weekly_reporting_text=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 /var/cyhy/reports/output/snapshots_reports_scorecard_automation.log")
+
+# Note: The macOS default "cut" command does not support the long flag names
+# for --delimeter and --fields.
+weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9)
+weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9)
+weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7)
 
 # WEEKLY DATABASE ARCHIVE METRICS
 weekly_cyhy_db_archive_duration_minutes=$(ssh "$cyhy_db_fqdn" "grep 'successfully completed' \$(ls -rt /var/log/cyhy/archive.log-* | tail --lines 1) | grep --only-matching '(.*)' | sed 's/[( minutes)]//g'")
