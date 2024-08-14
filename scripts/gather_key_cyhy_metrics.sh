@@ -18,7 +18,7 @@
 #
 # Requires:
 # - SSH access to the Cyber Hygiene database and reporter servers
-# - mongosh installed
+# - mongosh installed; see https://www.mongodb.com/docs/mongodb-shell/install/
 # - A MongoDB user with read access to the Cyber Hygiene database
 
 set -o nounset
