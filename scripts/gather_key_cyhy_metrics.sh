@@ -32,13 +32,16 @@ if [ $# -eq 5 ]; then
   cyhy_mongodb_username=$4
   cyhy_mongodb_password=$5
 else
-  echo "Usage:  gather_key_cyhy_metrics.sh cyhy_db_fqdn cyhy_reporter_fqdn cyhy_mongodb_uri cyhy_mongodb_username cyhy_mongodb_password"
-  echo
-  echo "cyhy_db_fqdn: The fully qualified domain name of the Cyber Hygiene database server (e.g. \"database.example.gov\")"
-  echo "cyhy_reporter_fqdn: The fully qualified domain name of the Cyber Hygiene reporter server (e.g. \"reporter.example.gov\")"
-  echo "cyhy_mongodb_uri: The MongoDB URI for the Cyber Hygiene database (e.g. \"mongodb://localhost:27017/cyhy\" or \"localhost/cyhy\")"
-  echo "cyhy_mongodb_username: The MongoDB username for the Cyber Hygiene database"
-  echo "cyhy_mongodb_password: The MongoDB password for the Cyber Hygiene database"
+  cat << END_OF_LINE
+Usage:  ${0##*/} cyhy_db_fqdn cyhy_reporter_fqdn cyhy_mongodb_uri cyhy_mongodb_username cyhy_mongodb_password
+
+cyhy_db_fqdn: The fully qualified domain name of the Cyber Hygiene database server (e.g. "database.example.gov")
+cyhy_reporter_fqdn: The fully qualified domain name of the Cyber Hygiene reporter server (e.g. "reporter.example.gov")
+cyhy_mongodb_uri: The MongoDB URI for the Cyber Hygiene database (e.g. "mongodb://localhost:27017/cyhy" or "localhost/cyhy")
+cyhy_mongodb_username: The MongoDB username for the Cyber Hygiene database
+cyhy_mongodb_password: The MongoDB password for the Cyber Hygiene database
+
+END_OF_LINE
   exit 1
 fi
 
