@@ -50,9 +50,15 @@ today=$(date +%Y-%m-%d)
 # COMMANDER MAIN LOOP DURATION METRICS
 # NOTE: These metrics are pulled from all existing (non-compressed) commander
 # logs, not just the most recent one.
-commander_duration_mean=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took .* seconds' /var/log/cyhy/commander.log* | awk '{ total += \$4; count++ } END { print total/count }'")
-commander_duration_median=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took .* seconds' /var/log/cyhy/commander.log* | cut --delimiter ' ' --fields 4 | sort --numeric-sort | awk '{ a[i++]=\$1; } END { print a[int(i/2)]; }'")
-commander_duration_max=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took .* seconds' /var/log/cyhy/commander.log* | cut --delimiter ' ' --fields 4 | sort --numeric-sort | tail --lines 1")
+commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' /var/log/cyhy/commander.log*")
+
+# echo "$commander_duration_text" preserves newlines; without this, the awk
+# command does not work correctly.
+commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { print total/count }')
+# Note: The macOS default "cut" command does not support the long flag names
+# for --delimeter and --fields.
+commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
+commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
 
 # COMMANDER SCAN BACKLOG METRICS
 scan_stages=("NETSCAN1" "NETSCAN2" "PORTSCAN" "VULNSCAN")
