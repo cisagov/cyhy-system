@@ -52,8 +52,6 @@ today=$(date +%Y-%m-%d)
 # logs, not just the most recent one.
 commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' /var/log/cyhy/commander.log*")
 
-# echo "$commander_duration_text" preserves newlines; without this, the awk
-# command does not work correctly.
 commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { print total/count }')
 # Note: The macOS default "cut" command does not support the long flag names
 # for --delimeter and --fields.
