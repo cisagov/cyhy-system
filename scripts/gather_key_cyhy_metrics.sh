@@ -25,13 +25,7 @@ set -o nounset
 set -o errexit
 set -o pipefail
 
-if [ $# -eq 5 ]; then
-  cyhy_db_fqdn=$1
-  cyhy_reporter_fqdn=$2
-  cyhy_mongodb_uri=$3
-  cyhy_mongodb_username=$4
-  cyhy_mongodb_password=$5
-else
+if [ $# -ne 5 ]; then
   cat << END_OF_LINE
 Usage:  ${0##*/} cyhy_db_fqdn cyhy_reporter_fqdn cyhy_mongodb_uri cyhy_mongodb_username cyhy_mongodb_password
 
@@ -44,6 +38,12 @@ cyhy_mongodb_password: The MongoDB password for the Cyber Hygiene database
 END_OF_LINE
   exit 1
 fi
+
+cyhy_db_fqdn=$1
+cyhy_reporter_fqdn=$2
+cyhy_mongodb_uri=$3
+cyhy_mongodb_username=$4
+cyhy_mongodb_password=$5
 
 today=$(date +%Y-%m-%d)
 
