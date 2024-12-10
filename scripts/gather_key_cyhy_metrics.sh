@@ -25,9 +25,13 @@ set -o nounset
 set -o errexit
 set -o pipefail
 
-if [ $# -ne 5 ]; then
+if [ $# -eq 2 ] && [ "$1" = "--config-file" ]; then
+  config_file=$2
+elif [ $# -ne 5 ]; then
   cat << END_OF_LINE
-Usage:  ${0##*/} cyhy_db_fqdn cyhy_reporter_fqdn cyhy_mongodb_uri cyhy_mongodb_username cyhy_mongodb_password
+Usage:
+  ${0##*/} cyhy_db_fqdn cyhy_reporter_fqdn cyhy_mongodb_uri cyhy_mongodb_username cyhy_mongodb_password
+  ${0##*/} --config-file <JSON configuration file>
 
 cyhy_db_fqdn: The fully qualified domain name of the Cyber Hygiene database server (e.g. "database.example.gov")
 cyhy_reporter_fqdn: The fully qualified domain name of the Cyber Hygiene reporter server (e.g. "reporter.example.gov")
@@ -35,16 +39,40 @@ cyhy_mongodb_uri: The MongoDB URI for the Cyber Hygiene database (e.g. "mongodb:
 cyhy_mongodb_username: The MongoDB username for the Cyber Hygiene database
 cyhy_mongodb_password: The MongoDB password for the Cyber Hygiene database
 
+If using a configuration file then the above values should be populated as a JSON object in the configuration file. Example configuration file:
+{
+  "cyhy_db_fqdn": "database.example.gov",
+  "cyhy_reporter_fqdn": "reporter.example.gov",
+  "cyhy_mongodb_uri": "mongodb://localhost:27017/cyhy",
+  "cyhy_mongodb_username": "username",
+  "cyhy_mongodb_password": "password"
+}
+
 END_OF_LINE
   exit 1
 fi
 
-cyhy_db_fqdn=$1
-cyhy_reporter_fqdn=$2
-cyhy_mongodb_uri=$3
-cyhy_mongodb_username=$4
-cyhy_mongodb_password=$5
+# Expect values from the command line
+if [ -z ${config_file+x} ]; then
+  cyhy_db_fqdn=$1
+  cyhy_reporter_fqdn=$2
+  cyhy_mongodb_uri=$3
+  cyhy_mongodb_username=$4
+  cyhy_mongodb_password=$5
+# Expect values from the config file
+else
+  # Check for jq tool
+  if ! command -v jq &> /dev/null; then
+    echo "jq is required to parse the config file. Please install jq and try again, or provide the values directly on the command line."
+    exit 1
+  fi
 
+  cyhy_db_fqdn=$(jq --raw-output '.cyhy_db_fqdn' "$config_file")
+  cyhy_reporter_fqdn=$(jq --raw-output '.cyhy_reporter_fqdn' "$config_file")
+  cyhy_mongodb_uri=$(jq --raw-output '.cyhy_mongodb_uri' "$config_file")
+  cyhy_mongodb_username=$(jq --raw-output '.cyhy_mongodb_username' "$config_file")
+  cyhy_mongodb_password=$(jq --raw-output '.cyhy_mongodb_password' "$config_file")
+fi
 today=$(date +%Y-%m-%d)
 
 # COMMANDER MAIN LOOP DURATION METRICS
