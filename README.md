@@ -1,6 +1,8 @@
 # cyhy-system #
 
 [![GitHub Build Status](https://github.com/cisagov/cyhy-system/workflows/build/badge.svg)](https://github.com/cisagov/cyhy-system/actions)
+[![License](https://img.shields.io/github/license/cisagov/cyhy-system)](https://spdx.org/licenses/)
+[![CodeQL](https://github.com/cisagov/cyhy-system/workflows/CodeQL/badge.svg)](https://github.com/cisagov/cyhy-system/actions/workflows/codeql-analysis.yml)
 
 This is a project for Cyber Hygiene (cyhy) that can be used for
 consolidated issue and work tracking.
