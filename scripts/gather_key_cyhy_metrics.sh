@@ -51,6 +51,10 @@ today=$(date +%Y-%m-%d)
 # NOTE: These metrics are pulled from all existing (non-compressed) commander
 # logs, not just the most recent one.
 commander_log_pattern="/var/log/cyhy/commander.log*"
+# Initialize defaults
+commander_duration_mean="N/A"
+commander_duration_median="N/A"
+commander_duration_max="N/A"
 # We ignore shellcheck SC2029 ("Note that, unescaped, this expands on the client
 # side") warnings here and elsewhere in this script because we do indeed want to
 # expand the commands on the remote host, not locally.
@@ -65,15 +69,7 @@ if ssh "$cyhy_db_fqdn" "ls $commander_log_pattern > /dev/null 2>&1"; then
     # for --delimeter and --fields.
     commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
     commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
-  else
-    commander_duration_mean="N/A"
-    commander_duration_median="N/A"
-    commander_duration_max="N/A"
   fi
-else
-  commander_duration_mean="N/A"
-  commander_duration_median="N/A"
-  commander_duration_max="N/A"
 fi
 
 # COMMANDER SCAN BACKLOG METRICS
@@ -93,19 +89,19 @@ done
 
 # WEEKLY REPORTING METRICS
 weekly_reporting_log="/var/cyhy/reports/output/snapshots_reports_scorecard_automation.log"
+# Initialize defaults
+weekly_snapshots_duration_minutes="N/A"
+weekly_reports_duration_minutes="N/A"
+weekly_total_reporting_duration_minutes="N/A"
 # shellcheck disable=SC2029
 if ssh "$cyhy_reporter_fqdn" "[ -f $weekly_reporting_log ]"; then
   # shellcheck disable=SC2029
   weekly_reporting_text=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 $weekly_reporting_log")
   # Note: The macOS default "cut" command does not support the long flag names
   # for --delimeter and --fields.
-weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9 || echo 'N/A')
-weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9 || echo 'N/A')
-weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7 || echo 'N/A')
-else
-  weekly_snapshots_duration_minutes="N/A"
-  weekly_reports_duration_minutes="N/A"
-  weekly_total_reporting_duration_minutes="N/A"
+  weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9 || echo 'N/A')
+  weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9 || echo 'N/A')
+  weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7 || echo 'N/A')
 fi
 
 # WEEKLY DATABASE ARCHIVE METRICS
