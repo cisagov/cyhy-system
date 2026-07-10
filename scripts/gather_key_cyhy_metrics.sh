@@ -57,12 +57,19 @@ commander_log_pattern="/var/log/cyhy/commander.log*"
 # shellcheck disable=SC2029
 if ssh "$cyhy_db_fqdn" "ls $commander_log_pattern > /dev/null 2>&1"; then
   # shellcheck disable=SC2029
-  commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' $commander_log_pattern")
-  commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { print total/count }')
-  # Note: The macOS default "cut" command does not support the long flag names
-  # for --delimeter and --fields.
-  commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
-  commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
+  commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' $commander_log_pattern" || true)
+
+  if [ -n "$commander_duration_text" ]; then
+    commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { if (count > 0) print total/count; else print "N/A" }')
+    # Note: The macOS default "cut" command does not support the long flag names
+    # for --delimeter and --fields.
+    commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
+    commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
+  else
+    commander_duration_mean="N/A"
+    commander_duration_median="N/A"
+    commander_duration_max="N/A"
+  fi
 else
   commander_duration_mean="N/A"
   commander_duration_median="N/A"
@@ -92,9 +99,9 @@ if ssh "$cyhy_reporter_fqdn" "[ -f $weekly_reporting_log ]"; then
   weekly_reporting_text=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 $weekly_reporting_log")
   # Note: The macOS default "cut" command does not support the long flag names
   # for --delimeter and --fields.
-  weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9)
-  weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9)
-  weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7)
+weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9 || echo 'N/A')
+weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9 || echo 'N/A')
+weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7 || echo 'N/A')
 else
   weekly_snapshots_duration_minutes="N/A"
   weekly_reports_duration_minutes="N/A"
