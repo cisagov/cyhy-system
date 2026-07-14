@@ -50,13 +50,27 @@ today=$(date +%Y-%m-%d)
 # COMMANDER MAIN LOOP DURATION METRICS
 # NOTE: These metrics are pulled from all existing (non-compressed) commander
 # logs, not just the most recent one.
-commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' /var/log/cyhy/commander.log*")
+commander_log_pattern="/var/log/cyhy/commander.log*"
+# Initialize defaults
+commander_duration_mean="N/A"
+commander_duration_median="N/A"
+commander_duration_max="N/A"
+# We ignore shellcheck SC2029 ("Note that, unescaped, this expands on the client
+# side") warnings here and elsewhere in this script because we do indeed want to
+# expand the commands on the remote host, not locally.
+# shellcheck disable=SC2029
+if ssh "$cyhy_db_fqdn" "ls $commander_log_pattern > /dev/null 2>&1"; then
+  # shellcheck disable=SC2029
+  commander_duration_text=$(ssh "$cyhy_db_fqdn" "grep --only-matching --perl-regexp 'Last cycle took [\d.]* seconds' $commander_log_pattern" || true)
 
-commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { print total/count }')
-# Note: The macOS default "cut" command does not support the long flag names
-# for --delimeter and --fields.
-commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
-commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
+  if [ -n "$commander_duration_text" ]; then
+    commander_duration_mean=$(echo "$commander_duration_text" | awk '{ total += $4; count++ } END { if (count > 0) print total/count; else print "N/A" }')
+    # Note: The macOS default "cut" command does not support the long flag names
+    # for --delimeter and --fields.
+    commander_duration_median=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | awk '{ a[i++]=$1; } END { print a[int(i/2)]; }')
+    commander_duration_max=$(echo "$commander_duration_text" | cut -d' ' -f4 | sort --numeric-sort | tail --lines 1)
+  fi
+fi
 
 # COMMANDER SCAN BACKLOG METRICS
 scan_stages=("NETSCAN1" "NETSCAN2" "PORTSCAN" "VULNSCAN")
@@ -74,19 +88,27 @@ for stage in "${scan_stages[@]}"; do
 done
 
 # WEEKLY REPORTING METRICS
-weekly_reporting_text=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 /var/cyhy/reports/output/snapshots_reports_scorecard_automation.log")
-
-# Note: The macOS default "cut" command does not support the long flag names
-# for --delimeter and --fields.
-weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9)
-weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9)
-weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7)
+weekly_reporting_log="/var/cyhy/reports/output/snapshots_reports_scorecard_automation.log"
+# Initialize defaults
+weekly_snapshots_duration_minutes="N/A"
+weekly_reports_duration_minutes="N/A"
+weekly_total_reporting_duration_minutes="N/A"
+# shellcheck disable=SC2029
+if ssh "$cyhy_reporter_fqdn" "[ -f $weekly_reporting_log ]"; then
+  # shellcheck disable=SC2029
+  weekly_reporting_text=$(ssh "$cyhy_reporter_fqdn" "tail --lines 10 $weekly_reporting_log")
+  # Note: The macOS default "cut" command does not support the long flag names
+  # for --delimeter and --fields.
+  weekly_snapshots_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate snapshots' | cut -d' ' -f9 || echo 'N/A')
+  weekly_reports_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Time to generate reports' | cut -d' ' -f9 || echo 'N/A')
+  weekly_total_reporting_duration_minutes=$(echo "$weekly_reporting_text" | grep 'Total time' | cut -d' ' -f7 || echo 'N/A')
+fi
 
 # WEEKLY DATABASE ARCHIVE METRICS
-weekly_cyhy_db_archive_duration_minutes=$(ssh "$cyhy_db_fqdn" "grep 'successfully completed' \$(ls -rt /var/log/cyhy/archive.log-* | tail --lines 1) | grep --only-matching '(.*)' | sed 's/[( minutes)]//g'")
+weekly_cyhy_db_archive_duration_minutes=$(ssh "$cyhy_db_fqdn" "archive_log=\$(ls -rt /var/log/cyhy/archive.log-* 2>/dev/null | tail --lines 1); if [ -n \"\$archive_log\" ]; then grep 'successfully completed' \"\$archive_log\" | grep --only-matching '(.*)' | sed 's/[( minutes)]//g'; else echo 'N/A'; fi")
 
 # DAILY CYHY FEED METRICS
-daily_cyhy_feed_duration_minutes=$(ssh "$cyhy_db_fqdn" "grep 'Finished data extraction process' /var/log/cyhy/feeds.log | cut --delimiter ' ' --fields 2 | awk -F: '{print (\$1 * 60) + \$2}'")
+daily_cyhy_feed_duration_minutes=$(ssh "$cyhy_db_fqdn" "if [ -f /var/log/cyhy/feeds.log ]; then grep 'Finished data extraction process' /var/log/cyhy/feeds.log | cut --delimiter ' ' --fields 2 | awk -F: '{print (\$1 * 60) + \$2}'; else echo 'N/A'; fi")
 
 # OUTPUT RESULTS
 echo "Date,Commander Main Loop Duration Mean (sec),Commander Main Loop Duration Median (sec),Commander Main Loop Duration Max (sec),NETSCAN1 hosts waiting (non-zero priority),NETSCAN2 hosts waiting (non-zero priority),PORTSCAN hosts waiting (non-zero priority),VULNSCAN hosts waiting (non-zero priority),NETSCAN1 hosts waiting (zero priority),NETSCAN2 hosts waiting (zero priority),PORTSCAN hosts waiting (zero priority),VULNSCAN hosts waiting (zero priority),Weekly Snapshots Duration (min),Weekly Reports Duration (min),Weekly Total Reporting Duration (min),Weekly CyHy DB Archive Duration (min),Daily CyHy Feed Duration (min)"
